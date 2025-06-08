@@ -1,0 +1,388 @@
+{
+  "name": "Linear Meeting Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "krisp-transcript",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "resource": "issue",
+        "operation": "getAll",
+        "teamId": "={{ YOUR_TEAM_ID }}",
+        "returnAll": true,
+        "options": {
+          "filter": {
+            "state": {
+              "type": {
+                "in": ["unstarted", "started", "backlog"]
+              }
+            }
+          }
+        }
+      },
+      "name": "Linear: Get All Issues",
+      "type": "n8n-nodes-base.linear",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/linear-meeting-prompt.md",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "name": "Fetch GitHub Prompt",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Linear Data - Combines webhook and Linear data\n// [INSERT CODE FROM ARTIFACTS]"
+      },
+      "name": "Format Linear Data",
+      "type": "n8n-nodes-base.code",
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      },
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prompt Builder - Builds Claude prompt\n// [INSERT CODE FROM ARTIFACTS]"
+      },
+      "name": "Prompt Builder",
+      "type": "n8n-nodes-base.code",
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.claudeRequestBody }}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Claude Response\n// [INSERT CODE FROM ARTIFACTS]"
+      },
+      "name": "Parse Claude Response",
+      "type": "n8n-nodes-base.code",
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Split Create Items\n// [INSERT CODE FROM ARTIFACTS]"
+      },
+      "name": "Split Create Items",
+      "type": "n8n-nodes-base.code",
+      "position": [1650, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Split Update Items\n// [INSERT CODE FROM ARTIFACTS]"
+      },
+      "name": "Split Update Items",
+      "type": "n8n-nodes-base.code",
+      "position": [1650, 400]
+    },
+    {
+      "parameters": {
+        "resource": "issue",
+        "operation": "create",
+        "teamId": "={{ YOUR_TEAM_ID }}",
+        "title": "={{ $json.linear_fields.title }}",
+        "description": "={{ $json.linear_fields.description }}",
+        "additionalFields": {
+          "priority": "={{ $json.linear_fields.priority }}",
+          "dueDate": "={{ $json.linear_fields.dueDate }}"
+        }
+      },
+      "name": "Linear: Create Issue",
+      "type": "n8n-nodes-base.linear",
+      "position": [1850, 200]
+    },
+    {
+      "parameters": {
+        "resource": "issue",
+        "operation": "get",
+        "issueId": "={{ $json.linear_fields.issueId }}"
+      },
+      "name": "Linear: Get Issue",
+      "type": "n8n-nodes-base.linear",
+      "position": [1850, 350]
+    },
+    {
+      "parameters": {
+        "resource": "issue",
+        "operation": "update",
+        "issueId": "={{ $json.linear_fields.issueId }}",
+        "updateFields": {
+          "description": "={{ $('Linear: Get Issue').item.json.description }}{{ $json.linear_fields.description_append }}",
+          "priority": "={{ $json.linear_fields.priority }}",
+          "dueDate": "={{ $json.linear_fields.dueDate }}"
+        }
+      },
+      "name": "Linear: Update Issue",
+      "type": "n8n-nodes-base.linear",
+      "position": [2050, 400]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByIndex",
+        "options": {}
+      },
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "position": [2250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Response\n// [INSERT CODE FROM ARTIFACTS]"
+      },
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "position": [2450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [2650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Linear: Get All Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linear: Get All Issues": {
+      "main": [
+        [
+          {
+            "node": "Fetch GitHub Prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Linear Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch GitHub Prompt": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Linear Data": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Prompt Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt Builder": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Parse Claude Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Claude Response": {
+      "main": [
+        [
+          {
+            "node": "Split Create Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Update Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Create Items": {
+      "main": [
+        [
+          {
+            "node": "Linear: Create Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Update Items": {
+      "main": [
+        [
+          {
+            "node": "Linear: Get Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linear: Create Issue": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linear: Get Issue": {
+      "main": [
+        [
+          {
+            "node": "Linear: Update Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linear: Update Issue": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "instanceId": "linear-meeting-intelligence"
+  },
+  "tags": []
+}
