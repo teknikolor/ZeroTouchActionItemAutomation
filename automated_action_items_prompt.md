@@ -1,4 +1,9 @@
-# Automated Action Items Prompt
+<!-- Configuration -->
+<!-- model: claude-3-5-sonnet-20241022 -->
+<!-- temperature: 0.3 -->
+<!-- max_tokens: 4096 -->
+
+# Linear Meeting Intelligence Prompt
 
 You are an expert project management assistant. Your task is to analyze the meeting transcript below and extract action items, then determine if they match existing Linear issues or need new issues created.
 
