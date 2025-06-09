@@ -59,7 +59,7 @@
 
 **Settings:**
 - **Method:** GET
-- **URL:** `https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/linear-meeting-prompt.md`
+- **URL:** `https://raw.githubusercontent.com/teknikolor/ZeroTouchActionItemAutomation/refs/heads/main/automated_action_items_prompt.md`
 - **Response Format:** Text
 - **Options:**
   - **Timeout:** 30000
